@@ -12,9 +12,9 @@ library(tidyverse)
 
 ## Import Data
 ```{r}
-training_data = read.table("training_data.txt", header = T)
-test_data = read.table("test_data.txt", header = T)
-write.csv(test_data, "test_data.csv", row.names = F)
+training_data = read.table("Data/training_data.txt", header = T)
+test_data = read.table("Data/test_data.txt", header = T)
+
 # Creating binary & multi category activity code
 training_data = training_data %>% mutate(activity_bin = case_when(activity >= 4 ~ 0, TRUE ~ 1),
                                          activity_multi = case_when(activity >= 7 ~ 7, TRUE ~ as.numeric(activity))) %>% 
@@ -47,6 +47,12 @@ lasso.accuracy = confusionMatrix(data = lasso.res, reference = Y.test.bin)
 task1.res = predict(lasso.model, as.matrix(test_data[, -1]), type = "class")
 # write.table(data.frame(as.integer(task1.res)), file = "binary_A4786.txt", row.names = FALSE, col.names = FALSE)
 ```
+
+## Table and Figures
+```{r}
+
+```
+
 
 ## Task 2: Bagged Decision Tree
 ```{r}

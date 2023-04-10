@@ -26,5 +26,5 @@ The data folder of this repository includes the following files:
 - Data dictionary: "data_dictionary.txt"
 - Information on how features are selected: "features_info.txt".
 
-## Replicate Result
+## Replicate Results
 To replicate the same classification results, please use set.seed(2023) before any random sampling processing code.

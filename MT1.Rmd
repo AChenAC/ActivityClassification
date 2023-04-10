@@ -1,0 +1,96 @@
+---
+title: "626 Midterm 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(glmnet)
+library(caret)
+library(tidyverse)
+```
+
+## Import Data
+```{r}
+training_data = read.table("training_data.txt", header = T)
+test_data = read.table("test_data.txt", header = T)
+write.csv(test_data, "test_data.csv", row.names = F)
+# Creating binary & multi category activity code
+training_data = training_data %>% mutate(activity_bin = case_when(activity >= 4 ~ 0, TRUE ~ 1),
+                                         activity_multi = case_when(activity >= 7 ~ 7, TRUE ~ as.numeric(activity))) %>% 
+  select(subject, activity, activity_bin, activity_multi, everything())
+set.seed(2023)
+```
+
+## Training and Test Data set
+```{r}
+## Split test and train 
+idx = round(nrow(training_data)*0.2, digits=0) # round to integer number of index
+test.idx = sample(1:nrow(training_data), idx) # random select idx from all index
+data.train = training_data[-test.idx,] # 80% training data
+data.test = training_data[test.idx,] # 20% testing data
+X.train = data.train %>% select(F1:F561) %>% as.matrix()
+Y.train.bin = data.train %>% select(activity_bin) %>% as.matrix() %>% as.factor()
+Y.train.multi = data.train %>% select(activity_multi) %>% as.matrix() %>% as.factor()
+X.test = data.test %>% select(F1:F561) %>% as.matrix()
+Y.test.bin = data.test %>% select(activity_bin) %>% as.matrix() %>% as.factor()
+Y.test.multi = data.test %>% select(activity_multi) %>% as.matrix() %>% as.factor()
+```
+
+
+## Task 1: Lasso Logistic Regression
+```{r}
+cv.lasso = cv.glmnet(X.train, Y.train.bin, alpha = 1, family = "binomial", type.measure = "class") # Lasso: alpha = 1 
+lasso.model = glmnet(X.train, Y.train.bin, alpha = 1, family = "binomial", lambda = cv.lasso$lambda.min)
+lasso.res = predict(lasso.model, X.test, type="class") %>% as.factor()
+lasso.accuracy = confusionMatrix(data = lasso.res, reference = Y.test.bin)
+task1.res = predict(lasso.model, as.matrix(test_data[, -1]), type = "class")
+# write.table(data.frame(as.integer(task1.res)), file = "binary_A4786.txt", row.names = FALSE, col.names = FALSE)
+```
+
+## Task 2: Bagged Decision Tree
+```{r}
+X.train.selected = X.train[, which(lasso.model$beta != 0)]
+X.test.selected = X.test[, which(lasso.model$beta != 0)]
+trControl = trainControl(method = "cv", number = 10)
+BaggedTree = train(X.train.selected, as.factor(Y.train.multi),
+                   method = "treebag",
+                   trControl  = trControl)
+BaggedTree.res = predict(BaggedTree, X.test.selected)
+confusionMatrix(data = BaggedTree.res, reference = Y.test.multi)
+task2.res = predict(BaggedTree, as.matrix(test_data[, which(lasso.model$beta != 0)+1]), type="raw") %>% as.factor()
+# write.table(data.frame(as.integer(task2.res)), file = "multiclass_A4786.txt", row.names = FALSE, col.names = FALSE)
+```
+
+## Task 2: lda
+```{r}
+lda.task2 = train(X.train, as.factor(Y.train.multi),
+                  method = "lda",
+                  trControl  = trControl)
+lda.task2.res = predict(lda.task2, X.test, type="raw")
+confusionMatrix(data = lda.task2.res, reference = Y.test.multi)
+```
+
+## Multinomial Logistic 
+```{r}
+cv.lasso.multi = cv.glmnet(X.train, Y.train.multi, alpha = 1, family = "multinomial", type.measure = "class") # Lasso: alpha = 1
+lasso.model.multi = glmnet(X.train, Y.train.multi, alpha = 1, family = "multinomial", lambda = cv.lasso.multi$lambda.min)
+lasso.res.multi = predict(lasso.model.multi, X.test, type="class") %>% as.factor()
+lasso.accuracy.multi = confusionMatrix(data = lasso.res.multi, reference = Y.test.multi)
+task2.res = predict(lasso.model.multi, as.matrix(test_data[, -1]), type = "class")
+dim(X.train); length(Y.train.multi); length(Y.train.bin)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

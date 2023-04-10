@@ -71,15 +71,6 @@ lda.task2.res = predict(lda.task2, X.test, type="raw")
 confusionMatrix(data = lda.task2.res, reference = Y.test.multi)
 ```
 
-## Multinomial Logistic 
-```{r}
-cv.lasso.multi = cv.glmnet(X.train, Y.train.multi, alpha = 1, family = "multinomial", type.measure = "class") # Lasso: alpha = 1
-lasso.model.multi = glmnet(X.train, Y.train.multi, alpha = 1, family = "multinomial", lambda = cv.lasso.multi$lambda.min)
-lasso.res.multi = predict(lasso.model.multi, X.test, type="class") %>% as.factor()
-lasso.accuracy.multi = confusionMatrix(data = lasso.res.multi, reference = Y.test.multi)
-task2.res = predict(lasso.model.multi, as.matrix(test_data[, -1]), type = "class")
-dim(X.train); length(Y.train.multi); length(Y.train.bin)
-```
 
 
 

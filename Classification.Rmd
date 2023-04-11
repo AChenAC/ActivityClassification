@@ -1,6 +1,8 @@
 ---
 title: "626 Midterm 1"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -8,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(glmnet)
 library(caret)
 library(tidyverse)
+library(pROC)
 ```
 
 ## Import Data
@@ -43,42 +46,49 @@ Y.test.multi = data.test %>% select(activity_multi) %>% as.matrix() %>% as.facto
 cv.lasso = cv.glmnet(X.train, Y.train.bin, alpha = 1, family = "binomial", type.measure = "class") # Lasso: alpha = 1 
 lasso.model = glmnet(X.train, Y.train.bin, alpha = 1, family = "binomial", lambda = cv.lasso$lambda.min)
 lasso.res = predict(lasso.model, X.test, type="class") %>% as.factor()
+lasso.prob = predict(lasso.model, X.test, type="response")
 lasso.accuracy = confusionMatrix(data = lasso.res, reference = Y.test.bin)
 task1.res = predict(lasso.model, as.matrix(test_data[, -1]), type = "class")
 # write.table(data.frame(as.integer(task1.res)), file = "binary_A4786.txt", row.names = FALSE, col.names = FALSE)
 ```
 
-## Table and Figures
+## Task 1 Evaluation: Table and Figures
 ```{r}
-
+knitr::kable(lasso.accuracy$table)
+pROC::roc(as.numeric(Y.test.bin) ~ as.numeric(lasso.prob), plot = TRUE, print.auc = TRUE)
 ```
 
-
-## Task 2: Bagged Decision Tree
+## Task 2: kNN
 ```{r}
 X.train.selected = X.train[, which(lasso.model$beta != 0)]
 X.test.selected = X.test[, which(lasso.model$beta != 0)]
 trControl = trainControl(method = "cv", number = 10)
+knn.task2 = train(X.train.selected, as.factor(Y.train.multi),
+                  method = "knn",
+                  trControl  = trControl)
+knn.task2.res = predict(knn.task2, X.test.selected, type="raw")
+knn.accuracy = confusionMatrix(data = knn.task2.res, reference = Y.test.multi)
+```
+
+## Task 2: Bagged Decision Tree
+```{r}
+
 BaggedTree = train(X.train.selected, as.factor(Y.train.multi),
                    method = "treebag",
                    trControl  = trControl)
 BaggedTree.res = predict(BaggedTree, X.test.selected)
-confusionMatrix(data = BaggedTree.res, reference = Y.test.multi)
+bagged.accuracy = confusionMatrix(data = BaggedTree.res, reference = Y.test.multi)
 task2.res = predict(BaggedTree, as.matrix(test_data[, which(lasso.model$beta != 0)+1]), type="raw") %>% as.factor()
 # write.table(data.frame(as.integer(task2.res)), file = "multiclass_A4786.txt", row.names = FALSE, col.names = FALSE)
 ```
 
-## Task 2: lda
+
+## Task 2 Evaluation: Table and Figures
 ```{r}
-lda.task2 = train(X.train, as.factor(Y.train.multi),
-                  method = "lda",
-                  trControl  = trControl)
-lda.task2.res = predict(lda.task2, X.test, type="raw")
-confusionMatrix(data = lda.task2.res, reference = Y.test.multi)
+knitr::kable(knn.accuracy$table)
+knitr::kable(bagged.accuracy$table)
+bagged.accuracy
 ```
-
-
-
 
 
 
